@@ -1,0 +1,19 @@
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Validate') { steps { sh 'python3 -m py_compile app/src/app.py' } }
+    stage('Build') { steps { sh 'docker build -t aws-devops-demo:${BUILD_NUMBER} app' } }
+    stage('Smoke Test') {
+      steps {
+        sh '''
+          docker rm -f aws-devops-test 2>/dev/null || true
+          docker run -d --name aws-devops-test -p 18080:8080 aws-devops-demo:${BUILD_NUMBER}
+          sleep 5
+          curl --fail http://localhost:18080/health
+        '''
+      }
+    }
+  }
+  post { always { sh 'docker rm -f aws-devops-test 2>/dev/null || true' } }
+}

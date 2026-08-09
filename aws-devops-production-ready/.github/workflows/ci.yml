@@ -1,0 +1,19 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Python syntax check
+        run: python -m py_compile app/src/app.py
+      - name: Docker build
+        run: docker build -t aws-devops-demo:test ./app
+      - name: Smoke test
+        run: |
+          docker run -d --name aws-devops-test -p 18080:8080 aws-devops-demo:test
+          sleep 5
+          curl --fail http://localhost:18080/health
